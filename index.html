@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Grund-Setup für Mobile First */
+    :root {
+      --primary-color: #3f51b5; /* Ein schönes Blau */
+      --accent-color: #ff4081;
+      --bg-color: #f5f5f5;
+      --card-bg: #ffffff;
+      --text-color: #333;
+      --disabled-color: #b0bec5;
+      --success-color: #4caf50;
+      --error-color: #f44336;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .header-panel {
+      background-color: var(--card-bg);
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    #progress-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      height: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      overflow: hidden;
+    }
+
+    #progress-bar {
+      height: 100%;
+      background-color: var(--success-color);
+      width: 0%;
+      transition: width 0.3s ease-in-out;
+    }
+
+    .stats-text {
+      font-size: 14px;
+      margin: 0;
+      color: #757575;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    h2, h3 {
+      margin-top: 0;
+      color: var(--primary-color);
+      text-align: center;
+    }
+
+    .kat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      padding: 10px 0;
+    }
+
+    .kat-btn {
+      background-color: var(--card-bg);
+      border: none;
+      border-radius: 15px;
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.1s;
+      padding: 10px;
+    }
+
+    .kat-btn:active { transform: scale(0.97); }
+
+    .kat-btn.disabled {
+      background-color: var(--disabled-color);
+      color: #fff;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
+    .symbol { font-size: 40px; margin-bottom: 8px; }
+    .kat-name { font-size: 16px; font-weight: 500; text-align: center; }
+
+    .frage-card {
+      background-color: var(--card-bg);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .quiz-img-container {
+      width: 100%;
+      background-color: #eee;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      min-height: 100px;
+    }
+
+    .quiz-img {
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      object-fit: contain;
+      opacity: 0;
+      transition: opacity 0.3s ease-in;
+    }
+
+    #frage-text {
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.4;
+      margin-bottom: 20px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .opt-btn {
+      background-color: #fff;
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+      border-radius: 10px;
+      padding: 15px;
+      width: 100%;
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      text-align: left;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .opt-btn.correct {
+      background-color: var(--success-color) !important;
+      border-color: var(--success-color) !important;
+      color: white !important;
+    }
+
+    .opt-btn.wrong {
+      background-color: var(--error-color) !important;
+      border-color: var(--error-color) !important;
+      color: white !important;
+    }
+
+    .opt-letter {
+      font-weight: bold;
+      margin-right: 12px;
+      min-width: 20px;
+    }
+
+    #result-card {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .result-score {
+      font-size: 48px;
+      color: var(--success-color);
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    .restart-btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    #loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading-overlay">Lade Quiz-Daten...</div>
+
+  <div class="main-container">
+    <div class="header-panel">
+      <div id="progress-container"><div id="progress-bar"></div></div>
+      <p class="stats-text">
+        Frage: <span id="answered-count" style="font-weight:bold; color:#333;">0</span> / 30 | 
+        Richtig: <span id="score" style="font-weight:bold; color:var(--success-color);">0</span>
+      </p>
+    </div>
+
+    <!-- Kategorien -->
+    <div id="screen-kat" class="screen">
+      <h2>Wähle ein Thema</h2>
+      <div id="kat-list" class="kat-grid"></div>
+    </div>
+
+    <!-- Fragen -->
+    <div id="screen-frage" class="screen">
+      <div class="frage-card">
+        <h3 id="frage-kat-title">Kategorie</h3>
+        <div id="img-container" class="quiz-img-container">
+          <img id="frage-img" class="quiz-img" src="">
+        </div>
+        <p id="frage-text">Lade Frage...</p>
+        <button id="btn-A" class="opt-btn" onclick="checkAnswer('A')"><span class="opt-letter">A</span> <span id="optA"></span></button>
+        <button id="btn-B" class="opt-btn" onclick="checkAnswer('B')"><span class="opt-letter">B</span> <span id="optB"></span></button>
+        <button id="btn-C" class="opt-btn" onclick="checkAnswer('C')"><span class="opt-letter">C</span> <span id="optC"></span></button>
+      </div>
+    </div>
+
+    <!-- Ergebnis -->
+    <div id="screen-result" class="screen">
+      <div id="result-card">
+        <div style="font-size: 60px;">🎉</div>
+        <h2>Wahnsinn, Fabian!</h2>
+        <p>Du hast das Quiz erfolgreich beendet.</p>
+        <div class="result-score"><span id="final-score">0</span> / 30</div>
+        <p id="result-comment">Super Leistung!</p>
+        <button class="restart-btn" onclick="location.reload()">Nochmal spielen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Die URL wurde angepasst: pubhtml wurde durch pub?output=csv ersetzt,
+     * damit der Browser die Daten direkt verarbeiten kann.
+     */
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdYLdafMZAkBfB4kqesOxUDc9QARX8OZjfj35XGQU1M0qd3Uj1aDQBAYWm5YJXj-W3tfamqx-qPhKy/pub?output=csv";
+
+    let allData = { fragen: [], symbole: {} };
+    let currentFrage, score = 0, answered = 0;
+    let isProcessing = false;
+    const imgCache = {};
+
+    // Initiales Laden der CSV-Daten
+    async function loadData() {
+      try {
+        const response = await fetch(CSV_URL);
+        const csvText = await response.text();
+        parseCSV(csvText);
+        
+        document.getElementById('loading-overlay').style.display = 'none';
+        preloadImages(allData.fragen);
+        renderKategorien();
+      } catch (error) {
+        console.error("Fehler beim Laden:", error);
+        document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Tabelle! Bitte prüfe, ob die Freigabe auf CSV steht.";
+      }
+    }
+
+    // Wandelt CSV-Text in Quiz-Struktur um
+    function parseCSV(csv) {
+      const lines = csv.split(/\r?\n/);
+      // Header überspringen (Zeile 1)
+      for (let i = 1; i < lines.length; i++) {
+        // Sicherer Split für Kommas (beachtet Anführungszeichen)
+        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
+        if (row.length < 7) continue;
+
+        const kat = row[0].replace(/"/g, '').trim();
+        const symbol = row[1].replace(/"/g, '').trim();
+        
+        // Symbole mappen
+        if (kat && symbol) {
+          allData.symbole[kat] = symbol;
+        }
+
+        // Fragen sammeln (Spalten 2 bis 7)
+        allData.fragen.push({
+          kat: kat,
+          frage: row[2].replace(/"/g, '').trim(),
+          a: row[3].replace(/"/g, '').trim(),
+          b: row[4].replace(/"/g, '').trim(),
+          c: row[5].replace(/"/g, '').trim(),
+          korrekt: row[6].replace(/"/g, '').trim().toUpperCase(),
+          img: row[7] ? row[7].replace(/"/g, '').trim() : "",
+          done: false
+        });
+      }
+    }
+
+    loadData();
+
+    function preloadImages(fragen) {
+      fragen.forEach(f => {
+        if (f.img && f.img.startsWith('http')) {
+          const img = new Image();
+          img.src = f.img;
+          imgCache[f.img] = img;
+        }
+      });
+    }
+
+    function renderKategorien() {
+      const list = document.getElementById('kat-list');
+      list.innerHTML = '';
+      const kats = [...new Set(allData.fragen.map(f => f.kat))].filter(k => k !== "");
+      
+      kats.forEach(k => {
+        const offen = allData.fragen.filter(f => f.kat === k && !f.done).length;
+        const btn = document.createElement('button');
+        btn.className = 'kat-btn' + (offen === 0 ? ' disabled' : '');
+        const symbol = allData.symbole[k] || '❓';
+        btn.innerHTML = `<span class="symbol">${symbol}</span><span class="kat-name">${k}</span>`;
+        btn.onclick = () => startFrage(k);
+        list.appendChild(btn);
+      });
+      showScreen('screen-kat');
+    }
+
+    function startFrage(kat) {
+      const fragen = allData.fragen.filter(f => f.kat === kat && !f.done);
+      if(fragen.length === 0) return;
+
+      currentFrage = fragen[Math.floor(Math.random() * fragen.length)];
+      isProcessing = false;
+      
+      ['A', 'B', 'C'].forEach(l => {
+        const btn = document.getElementById('btn-' + l);
+        btn.classList.remove('correct', 'wrong');
+        btn.disabled = false;
+      });
+
+      document.getElementById('frage-kat-title').innerText = kat;
+      document.getElementById('frage-text').innerText = currentFrage.frage;
+      document.getElementById('optA').innerText = currentFrage.a;
+      document.getElementById('optB').innerText = currentFrage.b;
+      document.getElementById('optC').innerText = currentFrage.c;
+      
+      const imgTag = document.getElementById('frage-img');
+      const imgCont = document.getElementById('img-container');
+
+      imgTag.style.opacity = '0';
+      if (currentFrage.img && currentFrage.img.startsWith('http')) {
+        imgCont.style.display = 'flex';
+        imgTag.src = currentFrage.img;
+        imgTag.onload = () => { imgTag.style.opacity = '1'; };
+      } else {
+        imgCont.style.display = 'none';
+        imgTag.src = '';
+      }
+      showScreen('screen-frage');
+    }
+
+    function checkAnswer(choice) {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      const korrekt = currentFrage.korrekt;
+      
+      ['A', 'B', 'C'].forEach(l => {
+        const btn = document.getElementById('btn-' + l);
+        btn.disabled = true;
+        if (l === korrekt) {
+          btn.classList.add('correct');
+        } else if (l === choice) {
+          btn.classList.add('wrong');
+        }
+      });
+
+      if(choice === korrekt) score++;
+      answered++;
+      currentFrage.done = true;
+      
+      document.getElementById('score').innerText = score;
+      document.getElementById('answered-count').innerText = answered;
+      const progressPercent = Math.min((answered / 30) * 100, 100);
+      document.getElementById('progress-bar').style.width = progressPercent + '%';
+      
+      setTimeout(() => {
+        if(answered >= 30) {
+          showFinalResult();
+        } else {
+          renderKategorien();
+        }
+      }, 1600);
+    }
+
+    function showFinalResult() {
+      document.getElementById('final-score').innerText = score;
+      let comment = "Das war eine super Runde!";
+      if(score >= 25) comment = "Fabian, du bist ein absoluter Profi! 🏆";
+      else if(score >= 15) comment = "Richtig gut gemacht, weiter so! 👍";
+      
+      document.getElementById('result-comment').innerText = comment;
+      showScreen('screen-result');
+    }
+
+    function showScreen(screenId) {
+      document.getElementById('screen-kat').style.display = 'none';
+      document.getElementById('screen-frage').style.display = 'none';
+      document.getElementById('screen-result').style.display = 'none';
+      document.getElementById(screenId).style.display = 'flex';
+    }
+  </script>
+</body>
+</html>
