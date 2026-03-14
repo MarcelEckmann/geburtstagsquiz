@@ -6,7 +6,7 @@
   <style>
     /* Grund-Setup für Mobile First */
     :root {
-      --primary-color: #3f51b5; /* Ein schönes Blau */
+      --primary-color: #3f51b5;
       --accent-color: #ff4081;
       --bg-color: #f5f5f5;
       --card-bg: #ffffff;
@@ -17,7 +17,7 @@
     }
 
     body {
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
@@ -106,9 +106,8 @@
 
     .kat-btn.disabled {
       background-color: var(--disabled-color);
-      color: #fff;
+      opacity: 0.6;
       pointer-events: none;
-      box-shadow: none;
     }
 
     .symbol { font-size: 40px; margin-bottom: 8px; }
@@ -122,27 +121,28 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .quiz-img-container {
       width: 100%;
+      max-width: 100%;
       background-color: #eee;
       border-radius: 8px;
       margin-bottom: 15px;
-      display: flex;
+      display: none; /* Initial versteckt */
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      min-height: 100px;
     }
 
     .quiz-img {
       width: 100%;
       height: auto;
-      max-height: 70vh;
+      max-height: 300px;
       object-fit: contain;
-      opacity: 0;
-      transition: opacity 0.3s ease-in;
+      display: block;
     }
 
     #frage-text {
@@ -168,7 +168,7 @@
       display: flex;
       align-items: center;
       text-align: left;
-      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+      transition: all 0.2s;
     }
 
     .opt-btn.correct {
@@ -221,10 +221,13 @@
       top: 0; left: 0; right: 0; bottom: 0;
       background: white;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 100;
       font-weight: bold;
+      padding: 20px;
+      text-align: center;
     }
   </style>
 </head>
@@ -243,7 +246,7 @@
 
     <!-- Kategorien -->
     <div id="screen-kat" class="screen">
-      <h2>Wähle ein Thema</h2>
+      <h2>Themenübersicht</h2>
       <div id="kat-list" class="kat-grid"></div>
     </div>
 
@@ -275,16 +278,11 @@
   </div>
 
   <script>
-    /**
-     * Die URL wurde angepasst: pubhtml wurde durch pub?output=csv ersetzt,
-     * damit der Browser die Daten direkt verarbeiten kann.
-     */
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdYLdafMZAkBfB4kqesOxUDc9QARX8OZjfj35XGQU1M0qd3Uj1aDQBAYWm5YJXj-W3tfamqx-qPhKy/pub?output=csv";
 
     let allData = { fragen: [], symbole: {} };
     let currentFrage, score = 0, answered = 0;
     let isProcessing = false;
-    const imgCache = {};
 
     // Initiales Laden der CSV-Daten
     async function loadData() {
@@ -293,57 +291,56 @@
         const csvText = await response.text();
         parseCSV(csvText);
         
+        if (allData.fragen.length === 0) {
+          throw new Error("Keine Daten gefunden");
+        }
+
         document.getElementById('loading-overlay').style.display = 'none';
-        preloadImages(allData.fragen);
         renderKategorien();
       } catch (error) {
         console.error("Fehler beim Laden:", error);
-        document.getElementById('loading-overlay').innerText = "Fehler beim Laden der Tabelle! Bitte prüfe, ob die Freigabe auf CSV steht.";
+        document.getElementById('loading-overlay').innerHTML = 
+          "Fehler beim Laden der Tabelle!<br><small>Bitte stelle sicher, dass die Google Tabelle öffentlich als CSV freigegeben ist.</small>";
       }
     }
 
-    // Wandelt CSV-Text in Quiz-Struktur um
+    // Verbesserter CSV Parser
     function parseCSV(csv) {
-      const lines = csv.split(/\r?\n/);
-      // Header überspringen (Zeile 1)
+      const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
+      if (lines.length < 2) return;
+
+      // Bestimme Trenner (Komma oder Semikolon)
+      const header = lines[0];
+      const delimiter = header.includes(';') ? ';' : ',';
+
       for (let i = 1; i < lines.length; i++) {
-        // Sicherer Split für Kommas (beachtet Anführungszeichen)
-        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
+        // Regex für CSV-Parsing (beachtet Anführungszeichen)
+        const regex = new RegExp(`${delimiter}(?=(?:(?:[^"]*"){2})*[^"]*$)`);
+        const row = lines[i].split(regex).map(cell => cell.replace(/^"|"$/g, '').trim());
+        
         if (row.length < 7) continue;
 
-        const kat = row[0].replace(/"/g, '').trim();
-        const symbol = row[1].replace(/"/g, '').trim();
+        const kat = row[0];
+        const symbol = row[1];
         
-        // Symbole mappen
-        if (kat && symbol) {
+        if (kat && symbol && !allData.symbole[kat]) {
           allData.symbole[kat] = symbol;
         }
 
-        // Fragen sammeln (Spalten 2 bis 7)
         allData.fragen.push({
           kat: kat,
-          frage: row[2].replace(/"/g, '').trim(),
-          a: row[3].replace(/"/g, '').trim(),
-          b: row[4].replace(/"/g, '').trim(),
-          c: row[5].replace(/"/g, '').trim(),
-          korrekt: row[6].replace(/"/g, '').trim().toUpperCase(),
-          img: row[7] ? row[7].replace(/"/g, '').trim() : "",
+          frage: row[2],
+          a: row[3],
+          b: row[4],
+          c: row[5],
+          korrekt: row[6].toUpperCase(),
+          img: row[7] || "",
           done: false
         });
       }
     }
 
     loadData();
-
-    function preloadImages(fragen) {
-      fragen.forEach(f => {
-        if (f.img && f.img.startsWith('http')) {
-          const img = new Image();
-          img.src = f.img;
-          imgCache[f.img] = img;
-        }
-      });
-    }
 
     function renderKategorien() {
       const list = document.getElementById('kat-list');
@@ -356,7 +353,7 @@
         btn.className = 'kat-btn' + (offen === 0 ? ' disabled' : '');
         const symbol = allData.symbole[k] || '❓';
         btn.innerHTML = `<span class="symbol">${symbol}</span><span class="kat-name">${k}</span>`;
-        btn.onclick = () => startFrage(k);
+        if (offen > 0) btn.onclick = () => startFrage(k);
         list.appendChild(btn);
       });
       showScreen('screen-kat');
@@ -384,11 +381,9 @@
       const imgTag = document.getElementById('frage-img');
       const imgCont = document.getElementById('img-container');
 
-      imgTag.style.opacity = '0';
-      if (currentFrage.img && currentFrage.img.startsWith('http')) {
+      if (currentFrage.img && currentFrage.img.trim() !== "" && currentFrage.img.startsWith('http')) {
         imgCont.style.display = 'flex';
         imgTag.src = currentFrage.img;
-        imgTag.onload = () => { imgTag.style.opacity = '1'; };
       } else {
         imgCont.style.display = 'none';
         imgTag.src = '';
@@ -427,7 +422,7 @@
         } else {
           renderKategorien();
         }
-      }, 1600);
+      }, 1500);
     }
 
     function showFinalResult() {
