@@ -157,8 +157,9 @@
       align-items: center;
     }
 
+    /* BILD-LAYOUT: 90% der Breite */
     .quiz-img-container {
-      width: 100%;
+      width: 90%;
       background-color: #eee;
       border-radius: 8px;
       margin-bottom: 15px;
@@ -172,7 +173,7 @@
     .quiz-img {
       width: 100%;
       height: auto;
-      max-height: 40vh;
+      max-height: 35vh; /* Etwas niedriger als zuvor */
       object-fit: contain;
       display: block;
       opacity: 0;
@@ -309,7 +310,7 @@
   </div>
 
   <div id="main-ui" class="main-container">
-    <div class="header-panel">
+    <div id="header-panel" class="header-panel">
       <div id="progress-container"><div id="progress-bar"></div></div>
       <p class="stats-text">
         Frage: <span id="answered-count" style="font-weight:bold; color:#333;">0</span> / 30 | 
@@ -590,6 +591,14 @@
     function showScreen(id) {
       ['screen-kat', 'screen-frage', 'screen-result'].forEach(s => document.getElementById(s).style.display = 'none');
       document.getElementById(id).style.display = 'flex';
+
+      // Statistiken im Header während der Fragen ausblenden
+      const header = document.getElementById('header-panel');
+      if (id === 'screen-frage') {
+        header.style.display = 'none';
+      } else {
+        header.style.display = 'block';
+      }
     }
   </script>
 </body>
