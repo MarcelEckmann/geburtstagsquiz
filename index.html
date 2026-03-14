@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
   <base target="_top">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fabians Quiz</title>
   <style>
-    /* Grund-Setup für Mobile First */
     :root {
       --primary-color: #3f51b5;
       --accent-color: #ff4081;
@@ -17,7 +18,7 @@
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
@@ -106,12 +107,14 @@
 
     .kat-btn.disabled {
       background-color: var(--disabled-color);
-      opacity: 0.6;
+      color: #fff;
       pointer-events: none;
+      box-shadow: none;
+      opacity: 0.6;
     }
 
     .symbol { font-size: 40px; margin-bottom: 8px; }
-    .kat-name { font-size: 16px; font-weight: 500; text-align: center; }
+    .kat-name { font-size: 15px; font-weight: bold; text-align: center; line-height: 1.2; }
 
     .frage-card {
       background-color: var(--card-bg);
@@ -121,32 +124,32 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 100%;
-      box-sizing: border-box;
     }
 
     .quiz-img-container {
       width: 100%;
-      max-width: 100%;
       background-color: #eee;
       border-radius: 8px;
       margin-bottom: 15px;
-      display: none; /* Initial versteckt */
+      display: none;
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      min-height: 150px;
     }
 
     .quiz-img {
       width: 100%;
       height: auto;
-      max-height: 300px;
+      max-height: 40vh;
       object-fit: contain;
       display: block;
+      opacity: 0;
+      transition: opacity 0.3s ease-in;
     }
 
     #frage-text {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 500;
       line-height: 1.4;
       margin-bottom: 20px;
@@ -159,16 +162,15 @@
       border: 2px solid var(--primary-color);
       color: var(--primary-color);
       border-radius: 10px;
-      padding: 15px;
+      padding: 14px;
       width: 100%;
       font-size: 16px;
-      font-weight: 500;
+      font-weight: 600;
       margin-bottom: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
       text-align: left;
-      transition: all 0.2s;
     }
 
     .opt-btn.correct {
@@ -187,6 +189,9 @@
       font-weight: bold;
       margin-right: 12px;
       min-width: 20px;
+      background: rgba(0,0,0,0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     #result-card {
@@ -225,15 +230,28 @@
       justify-content: center;
       align-items: center;
       z-index: 100;
-      font-weight: bold;
-      padding: 20px;
-      text-align: center;
     }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <div id="loading-overlay">Lade Quiz-Daten...</div>
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-text">Synchronisiere Daten...</div>
+    <div id="loading-subtext" style="font-size: 12px; color: #999; margin-top: 5px;">Bilder werden für flüssiges Spielen vorgeladen...</div>
+  </div>
 
   <div class="main-container">
     <div class="header-panel">
@@ -244,32 +262,29 @@
       </p>
     </div>
 
-    <!-- Kategorien -->
     <div id="screen-kat" class="screen">
-      <h2>Themenübersicht</h2>
+      <h2>Wähle ein Thema</h2>
       <div id="kat-list" class="kat-grid"></div>
     </div>
 
-    <!-- Fragen -->
     <div id="screen-frage" class="screen">
       <div class="frage-card">
         <h3 id="frage-kat-title">Kategorie</h3>
         <div id="img-container" class="quiz-img-container">
-          <img id="frage-img" class="quiz-img" src="">
+          <img id="frage-img" class="quiz-img" src="" alt="Quiz Bild">
         </div>
         <p id="frage-text">Lade Frage...</p>
-        <button id="btn-A" class="opt-btn" onclick="checkAnswer('A')"><span class="opt-letter">A</span> <span id="optA"></span></button>
-        <button id="btn-B" class="opt-btn" onclick="checkAnswer('B')"><span class="opt-letter">B</span> <span id="optB"></span></button>
-        <button id="btn-C" class="opt-btn" onclick="checkAnswer('C')"><span class="opt-letter">C</span> <span id="optC"></span></button>
+        <button id="btn-A" class="opt-btn" onclick="handleSelect('A')"><span class="opt-letter">A</span> <span id="optA"></span></button>
+        <button id="btn-B" class="opt-btn" onclick="handleSelect('B')"><span class="opt-letter">B</span> <span id="optB"></span></button>
+        <button id="btn-C" class="opt-btn" onclick="handleSelect('C')"><span class="opt-letter">C</span> <span id="optC"></span></button>
       </div>
     </div>
 
-    <!-- Ergebnis -->
     <div id="screen-result" class="screen">
       <div id="result-card">
         <div style="font-size: 60px;">🎉</div>
-        <h2>Wahnsinn, Fabian!</h2>
-        <p>Du hast das Quiz erfolgreich beendet.</p>
+        <h2>Fertig!</h2>
+        <p>Du hast das Quiz beendet.</p>
         <div class="result-score"><span id="final-score">0</span> / 30</div>
         <p id="result-comment">Super Leistung!</p>
         <button class="restart-btn" onclick="location.reload()">Nochmal spielen</button>
@@ -278,101 +293,121 @@
   </div>
 
   <script>
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQdYLdafMZAkBfB4kqesOxUDc9QARX8OZjfj35XGQU1M0qd3Uj1aDQBAYWm5YJXj-W3tfamqx-qPhKy/pub?output=csv";
+    // Konfiguration
+    const SHEET_ID = '1vQdYLdafMZAkBfB4kqesOxUDc9QARX8OZjfj35XGQU1M0qd3Uj1aDQBAYWm5YJXj-W3tfamqx-qPhKy';
+    // Link für das Blatt "Daten" (GID 0, falls es das erste Blatt ist)
+    const URL_DATA = `https://docs.google.com/spreadsheets/d/e/2PACX-${SHEET_ID}/pub?gid=0&output=csv`;
 
-    let allData = { fragen: [], symbole: {} };
-    let currentFrage, score = 0, answered = 0;
+    let allFragen = [];
+    let categoryIcons = {};
+    let currentFrage, score = 0, answeredCount = 0;
     let isProcessing = false;
 
-    // Initiales Laden der CSV-Daten
+    window.onload = loadData;
+
     async function loadData() {
       try {
-        const response = await fetch(CSV_URL);
+        const response = await fetch(URL_DATA);
         const csvText = await response.text();
-        parseCSV(csvText);
         
-        if (allData.fragen.length === 0) {
-          throw new Error("Keine Daten gefunden");
-        }
+        parseAllData(csvText);
+        
+        // Warten auf Bilder-Preload (verbessert User Experience)
+        await preloadImages();
 
         document.getElementById('loading-overlay').style.display = 'none';
         renderKategorien();
-      } catch (error) {
-        console.error("Fehler beim Laden:", error);
-        document.getElementById('loading-overlay').innerHTML = 
-          "Fehler beim Laden der Tabelle!<br><small>Bitte stelle sicher, dass die Google Tabelle öffentlich als CSV freigegeben ist.</small>";
+      } catch (e) {
+        console.error("Fehler beim Laden:", e);
+        document.getElementById('loading-text').innerText = "Verbindungsfehler!";
+        document.getElementById('loading-subtext').innerText = "Bitte Tabelle prüfen (Blattname 'Daten'?) oder Seite neu laden.";
       }
     }
 
-    // Verbesserter CSV Parser
-    function parseCSV(csv) {
-      const lines = csv.split(/\r?\n/).filter(line => line.trim() !== "");
-      if (lines.length < 2) return;
+    function parseCSVLine(line) {
+      let parts = [];
+      let current = '';
+      let inQuotes = false;
+      for (let char of line) {
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) { parts.push(current.trim().replace(/^"|"$/g, '')); current = ''; }
+        else current += char;
+      }
+      parts.push(current.trim().replace(/^"|"$/g, ''));
+      return parts;
+    }
 
-      // Bestimme Trenner (Komma oder Semikolon)
-      const header = lines[0];
-      const delimiter = header.includes(';') ? ';' : ',';
-
+    function parseAllData(text) {
+      const lines = text.split(/\r?\n/);
+      // Header überspringen (i=1)
       for (let i = 1; i < lines.length; i++) {
-        // Regex für CSV-Parsing (beachtet Anführungszeichen)
-        const regex = new RegExp(`${delimiter}(?=(?:(?:[^"]*"){2})*[^"]*$)`);
-        const row = lines[i].split(regex).map(cell => cell.replace(/^"|"$/g, '').trim());
-        
-        if (row.length < 7) continue;
+        const parts = parseCSVLine(lines[i]);
+        if (parts.length >= 7) {
+          // Fragen-Daten (A bis G)
+          const katName = parts[0];
+          allFragen.push({
+            kat: katName,
+            frage: parts[1],
+            a: parts[2],
+            b: parts[3],
+            c: parts[4],
+            img: parts[5],
+            korrekt: parts[6].toUpperCase().trim(),
+            done: false
+          });
 
-        const kat = row[0];
-        const symbol = row[1];
-        
-        if (kat && symbol && !allData.symbole[kat]) {
-          allData.symbole[kat] = symbol;
+          // Kategorie-Symbole aus Spalte J (Index 9) und K (Index 10) extrahieren
+          // Index 9 ist Spalte J, Index 10 ist Spalte K
+          if (parts[9] && parts[10]) {
+            categoryIcons[parts[9]] = parts[10];
+          }
         }
-
-        allData.fragen.push({
-          kat: kat,
-          frage: row[2],
-          a: row[3],
-          b: row[4],
-          c: row[5],
-          korrekt: row[6].toUpperCase(),
-          img: row[7] || "",
-          done: false
-        });
       }
     }
 
-    loadData();
+    async function preloadImages() {
+      const urls = [...new Set(allFragen.map(f => f.img).filter(u => u && u.startsWith('http')))];
+      const promises = urls.map(url => {
+        return new Promise(resolve => {
+          const img = new Image();
+          img.src = url;
+          img.onload = resolve;
+          img.onerror = resolve; // Auch bei Fehlern fortfahren
+        });
+      });
+      // Timeout nach 5 Sekunden, falls ein Server langsam ist
+      await Promise.race([
+        Promise.all(promises),
+        new Promise(r => setTimeout(r, 5000))
+      ]);
+    }
 
     function renderKategorien() {
       const list = document.getElementById('kat-list');
       list.innerHTML = '';
-      const kats = [...new Set(allData.fragen.map(f => f.kat))].filter(k => k !== "");
+      const uniqueKats = [...new Set(allFragen.map(f => f.kat))];
       
-      kats.forEach(k => {
-        const offen = allData.fragen.filter(f => f.kat === k && !f.done).length;
+      uniqueKats.forEach(k => {
+        const offen = allFragen.filter(f => f.kat === k && !f.done).length;
         const btn = document.createElement('button');
         btn.className = 'kat-btn' + (offen === 0 ? ' disabled' : '');
-        const symbol = allData.symbole[k] || '❓';
+        
+        // Symbol finden (aus Spalte K) oder Fallback
+        const symbol = categoryIcons[k] || "❓";
+        
         btn.innerHTML = `<span class="symbol">${symbol}</span><span class="kat-name">${k}</span>`;
-        if (offen > 0) btn.onclick = () => startFrage(k);
+        btn.onclick = () => { if(offen > 0) startFrage(k); };
         list.appendChild(btn);
       });
       showScreen('screen-kat');
     }
 
-    function startFrage(kat) {
-      const fragen = allData.fragen.filter(f => f.kat === kat && !f.done);
-      if(fragen.length === 0) return;
-
-      currentFrage = fragen[Math.floor(Math.random() * fragen.length)];
+    function startFrage(katName) {
+      const pool = allFragen.filter(f => f.kat === katName && !f.done);
+      currentFrage = pool[Math.floor(Math.random() * pool.length)];
       isProcessing = false;
       
-      ['A', 'B', 'C'].forEach(l => {
-        const btn = document.getElementById('btn-' + l);
-        btn.classList.remove('correct', 'wrong');
-        btn.disabled = false;
-      });
-
-      document.getElementById('frage-kat-title').innerText = kat;
+      document.getElementById('frage-kat-title').innerText = katName;
       document.getElementById('frage-text').innerText = currentFrage.frage;
       document.getElementById('optA').innerText = currentFrage.a;
       document.getElementById('optB').innerText = currentFrage.b;
@@ -380,66 +415,71 @@
       
       const imgTag = document.getElementById('frage-img');
       const imgCont = document.getElementById('img-container');
+      
+      ['A', 'B', 'C'].forEach(l => {
+        const b = document.getElementById('btn-' + l);
+        b.className = 'opt-btn';
+        b.disabled = false;
+      });
 
-      if (currentFrage.img && currentFrage.img.trim() !== "" && currentFrage.img.startsWith('http')) {
+      if (currentFrage.img && currentFrage.img.trim().startsWith('http')) {
+        imgTag.style.opacity = '0';
+        imgTag.src = currentFrage.img.trim();
         imgCont.style.display = 'flex';
-        imgTag.src = currentFrage.img;
+        imgTag.onload = () => { imgTag.style.opacity = '1'; };
+        imgTag.onerror = () => { imgCont.style.display = 'none'; };
       } else {
         imgCont.style.display = 'none';
-        imgTag.src = '';
       }
       showScreen('screen-frage');
     }
 
-    function checkAnswer(choice) {
+    function handleSelect(choice) {
       if (isProcessing) return;
       isProcessing = true;
 
       const korrekt = currentFrage.korrekt;
       
       ['A', 'B', 'C'].forEach(l => {
-        const btn = document.getElementById('btn-' + l);
-        btn.disabled = true;
+        const b = document.getElementById('btn-' + l);
+        b.disabled = true;
         if (l === korrekt) {
-          btn.classList.add('correct');
+          b.classList.add('correct');
         } else if (l === choice) {
-          btn.classList.add('wrong');
+          b.classList.add('wrong');
         }
       });
 
-      if(choice === korrekt) score++;
-      answered++;
+      if (choice === korrekt) score++;
+      answeredCount++;
       currentFrage.done = true;
       
-      document.getElementById('score').innerText = score;
-      document.getElementById('answered-count').innerText = answered;
-      const progressPercent = Math.min((answered / 30) * 100, 100);
-      document.getElementById('progress-bar').style.width = progressPercent + '%';
+      updateUI();
       
       setTimeout(() => {
-        if(answered >= 30) {
-          showFinalResult();
+        if (answeredCount >= 30 || allFragen.every(f => f.done)) {
+          showResult();
         } else {
           renderKategorien();
         }
-      }, 1500);
+      }, 1600);
     }
 
-    function showFinalResult() {
+    function updateUI() {
+      document.getElementById('score').innerText = score;
+      document.getElementById('answered-count').innerText = answeredCount;
+      const progress = Math.min((answeredCount / 30) * 100, 100);
+      document.getElementById('progress-bar').style.width = progress + '%';
+    }
+
+    function showResult() {
       document.getElementById('final-score').innerText = score;
-      let comment = "Das war eine super Runde!";
-      if(score >= 25) comment = "Fabian, du bist ein absoluter Profi! 🏆";
-      else if(score >= 15) comment = "Richtig gut gemacht, weiter so! 👍";
-      
-      document.getElementById('result-comment').innerText = comment;
       showScreen('screen-result');
     }
 
-    function showScreen(screenId) {
-      document.getElementById('screen-kat').style.display = 'none';
-      document.getElementById('screen-frage').style.display = 'none';
-      document.getElementById('screen-result').style.display = 'none';
-      document.getElementById(screenId).style.display = 'flex';
+    function showScreen(id) {
+      ['screen-kat', 'screen-frage', 'screen-result'].forEach(s => document.getElementById(s).style.display = 'none');
+      document.getElementById(id).style.display = 'flex';
     }
   </script>
 </body>
