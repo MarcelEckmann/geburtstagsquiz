@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fabians Quiz</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     :root {
       --primary-color: #3f51b5;
@@ -30,12 +31,42 @@
       box-sizing: border-box;
     }
 
+    /* Intro Animation Styles */
+    #intro-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+
+    .intro-text {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--primary-color);
+      opacity: 0;
+      position: absolute;
+      text-align: center;
+      animation: fadeInOut 2s ease-in-out forwards;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      20% { opacity: 1; transform: translateY(0); }
+      80% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
     .main-container {
       width: 100%;
       max-width: 500px;
       display: flex;
       flex-direction: column;
       flex-grow: 1;
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
     }
 
     .header-panel {
@@ -194,42 +225,60 @@
       border-radius: 4px;
     }
 
+    /* ERGEBNIS SCREEN ANIMATION */
+    #screen-result {
+      perspective: 1000px;
+    }
+
     #result-card {
       background: white;
       padding: 30px;
       border-radius: 20px;
       text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+      animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      opacity: 0;
+      transform: scale(0.5) translateY(50px);
+    }
+
+    @keyframes popIn {
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     .result-score {
-      font-size: 48px;
+      font-size: 64px;
       color: var(--success-color);
       font-weight: bold;
-      margin: 20px 0;
+      margin: 10px 0;
+      text-shadow: 2px 2px 0px rgba(0,0,0,0.05);
     }
 
     .restart-btn {
       background-color: var(--accent-color);
       color: white;
       border: none;
-      padding: 15px 30px;
-      border-radius: 30px;
-      font-size: 18px;
+      padding: 15px 35px;
+      border-radius: 50px;
+      font-size: 20px;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 20px;
+      margin-top: 25px;
+      box-shadow: 0 5px 15px rgba(255, 64, 129, 0.4);
+      transition: transform 0.2s, background-color 0.2s;
     }
+    
+    .restart-btn:hover { background-color: #f50057; transform: scale(1.05); }
+    .restart-btn:active { transform: scale(0.95); }
 
     #loading-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: white;
-      display: flex;
+      background: rgba(255,255,255,0.9);
+      display: none;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 100;
+      z-index: 150;
     }
 
     .spinner {
@@ -247,13 +296,19 @@
 </head>
 <body>
 
-  <div id="loading-overlay">
-    <div class="spinner"></div>
-    <div id="loading-text">Synchronisiere Daten...</div>
-    <div id="loading-subtext" style="font-size: 12px; color: #999; margin-top: 5px;">Bilder werden für flüssiges Spielen vorgeladen...</div>
+  <!-- Intro Screen -->
+  <div id="intro-screen">
+    <div id="intro-msg-1" class="intro-text" style="animation-delay: 0s;">Hallo Fabian!</div>
+    <div id="intro-msg-2" class="intro-text" style="animation-delay: 2s;">Bereit für ein Quiz?</div>
+    <div id="intro-msg-3" class="intro-text" style="animation-delay: 4s;">Los geht's!</div>
   </div>
 
-  <div class="main-container">
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-text">Daten werden finalisiert...</div>
+  </div>
+
+  <div id="main-ui" class="main-container">
     <div class="header-panel">
       <div id="progress-container"><div id="progress-bar"></div></div>
       <p class="stats-text">
@@ -282,28 +337,35 @@
 
     <div id="screen-result" class="screen">
       <div id="result-card">
-        <div style="font-size: 60px;">🎉</div>
-        <h2>Fertig!</h2>
+        <div id="result-emoji" style="font-size: 70px;">🏆</div>
+        <h2>Wahnsinn, Fabian!</h2>
         <p>Du hast das Quiz beendet.</p>
-        <div class="result-score"><span id="final-score">0</span> / 30</div>
-        <p id="result-comment">Super Leistung!</p>
+        <div class="result-score"><span id="final-score-display">0</span> / 30</div>
+        <p id="result-comment" style="font-size: 18px; font-weight: 500;">Starke Leistung!</p>
         <button class="restart-btn" onclick="location.reload()">Nochmal spielen</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Konfiguration
     const SHEET_ID = '1vQdYLdafMZAkBfB4kqesOxUDc9QARX8OZjfj35XGQU1M0qd3Uj1aDQBAYWm5YJXj-W3tfamqx-qPhKy';
-    // Link für das Blatt "Daten" (GID 0, falls es das erste Blatt ist)
     const URL_DATA = `https://docs.google.com/spreadsheets/d/e/2PACX-${SHEET_ID}/pub?gid=0&output=csv`;
 
     let allFragen = [];
     let categoryIcons = {};
     let currentFrage, score = 0, answeredCount = 0;
     let isProcessing = false;
+    let dataLoaded = false;
+    let introFinished = false;
 
-    window.onload = loadData;
+    window.onload = () => {
+      loadData();
+      
+      setTimeout(() => {
+        introFinished = true;
+        checkStartCondition();
+      }, 6750);
+    };
 
     async function loadData() {
       try {
@@ -311,16 +373,25 @@
         const csvText = await response.text();
         
         parseAllData(csvText);
-        
-        // Warten auf Bilder-Preload (verbessert User Experience)
         await preloadImages();
 
-        document.getElementById('loading-overlay').style.display = 'none';
-        renderKategorien();
+        dataLoaded = true;
+        checkStartCondition();
       } catch (e) {
         console.error("Fehler beim Laden:", e);
+        document.getElementById('loading-overlay').style.display = 'flex';
         document.getElementById('loading-text').innerText = "Verbindungsfehler!";
-        document.getElementById('loading-subtext').innerText = "Bitte Tabelle prüfen (Blattname 'Daten'?) oder Seite neu laden.";
+      }
+    }
+
+    function checkStartCondition() {
+      if (dataLoaded && introFinished) {
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('loading-overlay').style.display = 'none';
+        document.getElementById('main-ui').style.opacity = '1';
+        renderKategorien();
+      } else if (introFinished && !dataLoaded) {
+        document.getElementById('loading-overlay').style.display = 'flex';
       }
     }
 
@@ -339,11 +410,9 @@
 
     function parseAllData(text) {
       const lines = text.split(/\r?\n/);
-      // Header überspringen (i=1)
       for (let i = 1; i < lines.length; i++) {
         const parts = parseCSVLine(lines[i]);
         if (parts.length >= 7) {
-          // Fragen-Daten (A bis G)
           const katName = parts[0];
           allFragen.push({
             kat: katName,
@@ -356,8 +425,6 @@
             done: false
           });
 
-          // Kategorie-Symbole aus Spalte J (Index 9) und K (Index 10) extrahieren
-          // Index 9 ist Spalte J, Index 10 ist Spalte K
           if (parts[9] && parts[10]) {
             categoryIcons[parts[9]] = parts[10];
           }
@@ -372,13 +439,12 @@
           const img = new Image();
           img.src = url;
           img.onload = resolve;
-          img.onerror = resolve; // Auch bei Fehlern fortfahren
+          img.onerror = resolve;
         });
       });
-      // Timeout nach 5 Sekunden, falls ein Server langsam ist
       await Promise.race([
         Promise.all(promises),
-        new Promise(r => setTimeout(r, 5000))
+        new Promise(r => setTimeout(r, 8000))
       ]);
     }
 
@@ -392,7 +458,6 @@
         const btn = document.createElement('button');
         btn.className = 'kat-btn' + (offen === 0 ? ' disabled' : '');
         
-        // Symbol finden (aus Spalte K) oder Fallback
         const symbol = categoryIcons[k] || "❓";
         
         btn.innerHTML = `<span class="symbol">${symbol}</span><span class="kat-name">${k}</span>`;
@@ -462,7 +527,7 @@
         } else {
           renderKategorien();
         }
-      }, 1600);
+      }, 1700);
     }
 
     function updateUI() {
@@ -473,8 +538,53 @@
     }
 
     function showResult() {
-      document.getElementById('final-score').innerText = score;
       showScreen('screen-result');
+      
+      // Feedback basierend auf Score
+      let comment = "Gut gemacht!";
+      let emoji = "😎";
+      if(score >= 28) { comment = "Du bist ein Genie! 👑"; emoji = "🤩"; }
+      else if(score >= 20) { comment = "Richtig stark gespielt! 💪"; emoji = "🔥"; }
+      else if(score < 10) { comment = "Das klappt beim nächsten Mal besser!"; emoji = "🦾"; }
+      
+      document.getElementById('result-comment').innerText = comment;
+      document.getElementById('result-emoji').innerText = emoji;
+
+      // Punkte hochzählen Animation
+      let count = 0;
+      const display = document.getElementById('final-score-display');
+      const interval = setInterval(() => {
+        if(count >= score) {
+          display.innerText = score;
+          clearInterval(interval);
+          fireConfetti();
+        } else {
+          count++;
+          display.innerText = count;
+        }
+      }, 50);
+    }
+
+    function fireConfetti() {
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+      }, 250);
     }
 
     function showScreen(id) {
